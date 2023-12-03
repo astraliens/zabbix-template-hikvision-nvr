@@ -1,0 +1,245 @@
+zabbix_export:
+  version: '6.0'
+  date: '2023-12-03T08:51:18Z'
+  groups:
+    - uuid: 7df96b18c230490a9a0a9e2307226338
+      name: Templates
+  templates:
+    - uuid: 62ccbdad40514a86bd8af2039ddf23de
+      template: 'Template Hikvision NVR'
+      name: 'Template Hikvision NVR'
+      groups:
+        - name: Templates
+      items:
+        - uuid: 5f0ccf8a77174611b1337f98a84be936
+          name: 'CPU Frequency'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.50001.1.201.0
+          key: hikCPUFreq
+          delay: 5m
+          units: Hz
+          preprocessing:
+            - type: STR_REPLACE
+              parameters:
+                - MHZ
+                - ''
+            - type: MULTIPLIER
+              parameters:
+                - '1000000'
+          tags:
+            - tag: Application
+              value: CPU
+        - uuid: 6dc99ab662df46b28916a24a692ee513
+          name: Status
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.50001.1.230.0
+          key: hikDeviceStatus
+          description: 'display hikvision product status'
+          valuemap:
+            name: 'Hikvision online status'
+          tags:
+            - tag: Application
+              value: NVR
+          triggers:
+            - uuid: 8f11a2a8162c4d8eafa2a3f926730beb
+              expression: 'last(/Template Hikvision NVR/hikDeviceStatus)<>1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'last(/Template Hikvision NVR/hikDeviceStatus)=1'
+              name: 'Status changes'
+              priority: AVERAGE
+              manual_close: 'YES'
+        - uuid: 18a372afa62c4bdf8310938f46669bb8
+          name: 'Installed HDD count'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.50001.1.240.0
+          key: hikDiskNum
+          delay: 5m
+          tags:
+            - tag: Application
+              value: HDD
+          triggers:
+            - uuid: 4c0ade8a166949c99e9cacdfcc851f61
+              expression: 'change(/Template Hikvision NVR/hikDiskNum)>=1'
+              name: 'HDD count changed on  {HOST.NAME}'
+              priority: AVERAGE
+        - uuid: 65cf26bb78514e9499c1b6482f370a41
+          name: 'Device model'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.50001.1.101.0
+          key: hikEntitySubType
+          delay: 5m
+          history: 7d
+          trends: '0'
+          value_type: CHAR
+          description: 'hikvision product sub type'
+          valuemap:
+            name: 'Hikvision device type'
+          tags:
+            - tag: Application
+              value: General
+        - uuid: 99c986b9ce04420a8bc71c5f57330807
+          name: 'Total RAM'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.50001.1.220.0
+          key: hikMemoryCapability
+          delay: 5m
+          units: b
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - '1000000'
+          tags:
+            - tag: Application
+              value: Memory
+        - uuid: 34ce7a3f30464c6d882354d928b4eb0d
+          name: 'Memory Usage'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.50001.1.221.0
+          key: hikMemoryUsage
+          units: '%'
+          description: 'the Usage of hikvision product''s Memory, value scope  is (0-100)'
+          tags:
+            - tag: Application
+              value: Memory
+        - uuid: c80dcf04754440578c9d7b8181cb986a
+          name: 'Online status'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.50001.1.102.0
+          key: hikOnline
+          description: 'display hikvision product online status'
+          valuemap:
+            name: 'Hikvision online status'
+          tags:
+            - tag: Application
+              value: NVR
+          triggers:
+            - uuid: 55ed51319bd340089bb6b32045c1b019
+              expression: 'last(/Template Hikvision NVR/hikOnline)<>1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'last(/Template Hikvision NVR/hikOnline)=1'
+              name: 'Status online changes'
+              priority: AVERAGE
+              manual_close: 'YES'
+        - uuid: 808c020edfde4f4f87895d0657123a93
+          name: 'Device uptime'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.3.0
+          key: sysUpTime
+          delay: '60'
+          history: 7d
+          units: uptime
+          description: 'The time since the network management portion of the system was last re-initialized.'
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - '0.01'
+          tags:
+            - tag: Application
+              value: General
+      discovery_rules:
+        - uuid: d8723268100044d798a47e70c424efb6
+          name: DIskVolume
+          type: SNMP_AGENT
+          snmp_oid: 'walk[{#DISKID},1.3.6.1.4.1.50001.1.241.1.1]'
+          key: hikDiskVolume
+          delay: 30s
+          item_prototypes:
+            - uuid: bdea8699456b4990a942a5f88a47e2f4
+              name: 'HDD free space Drive #{#DISKID}'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.50001.1.241.1.4.{#DISKID}.0'
+              key: 'hikDiskFreeSpace[{#DISKID}]'
+              history: 30d
+              units: b
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '1048576'
+              tags:
+                - tag: Application
+                  value: HDD
+            - uuid: a3871c0ca1794c0e884502a0233444ad
+              name: 'HDD Status Drive #{#DISKID}'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.50001.1.241.1.3.{#DISKID}.0'
+              key: 'hikDiskStatus[{#DISKID}]'
+              history: 30d
+              valuemap:
+                name: 'Hikvision HDD state mapping'
+              tags:
+                - tag: Application
+                  value: HDD
+              trigger_prototypes:
+                - uuid: f0346af44ec14a6fa606a5b9a547da5d
+                  expression: 'last(/Template Hikvision NVR/hikDiskStatus[{#DISKID}])<>2'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'last(/Template Hikvision NVR/hikDiskStatus[{#DISKID}])=2'
+                  name: 'HDD status Drive #{#DISKID} changed'
+                  priority: HIGH
+                  manual_close: 'YES'
+            - uuid: e12962879e394e7d94c1f87e57969f3a
+              name: 'HDD total space Drive #{#DISKID}'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.50001.1.241.1.5.{#DISKID}.0'
+              key: 'hikDiskTotalSpace[{#DISKID}]'
+              history: 30d
+              units: b
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '1048576'
+              tags:
+                - tag: Application
+                  value: HDD
+      valuemaps:
+        - uuid: 3fa149ab06844021a99ca012aef782a0
+          name: 'Hikvision device type'
+          mappings:
+            - value: '1'
+              newvalue: DVR-70xx
+            - value: '2'
+              newvalue: DVR-71xx
+            - value: '20'
+              newvalue: DVR-80xx
+            - value: '21'
+              newvalue: DVR-81xx
+            - value: '40'
+              newvalue: DVR-90xx
+            - value: '41'
+              newvalue: DVR-91xx
+            - value: '200'
+              newvalue: NVR
+            - value: '400'
+              newvalue: IPC
+            - value: '65535'
+              newvalue: Unknown
+        - uuid: ba2e2f02fc02474c8471bc6fe1a30645
+          name: 'Hikvision HDD state mapping'
+          mappings:
+            - value: '0'
+              newvalue: Normal
+            - value: '1'
+              newvalue: Unformatted
+            - value: '2'
+              newvalue: Abnormal
+            - value: '3'
+              newvalue: Smartfailed
+            - value: '4'
+              newvalue: Mismatch
+            - value: '5'
+              newvalue: Idle
+            - value: '6'
+              newvalue: Notonline
+            - value: '10'
+              newvalue: Repairing
+            - value: '11'
+              newvalue: Formatting
+        - uuid: a486d5262e534eff9c0897dd9217283e
+          name: 'Hikvision online status'
+          mappings:
+            - value: '1'
+              newvalue: Online
+            - value: '2'
+              newvalue: Absent
+            - value: '255'
+              newvalue: Unknown
